@@ -29,7 +29,7 @@ export default function WithdrawalAnimals() {
         const treatmentSnap = await getDocs(treatmentQuery)
 
         if (!treatmentSnap.empty) {
-          const treatments = treatmentSnap.docs.map(doc => doc.data())
+          const treatments = treatmentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
           const activeTreatment = treatments.find(t => {
             if (t.injectionDate) {
               const injectionDate = new Date(t.injectionDate.toDate())
@@ -53,6 +53,33 @@ export default function WithdrawalAnimals() {
                 doctorName = doctorSnap.docs[0].data().name || 'N/A'
               }
             }
+
+            // Fetch ML prediction from backend
+            let riskData = null
+            try {
+              const response = await fetch('http://localhost:5000/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  animal_type: animal.species || 'chicken',
+                  antibiotic_type: activeTreatment.medicineName || 'amoxicillin',
+                  dosage_mg: parseFloat(activeTreatment.dosage || 0),
+                  duration_days: parseInt(activeTreatment.duration || 0),
+                  days_before_sale: Math.ceil((safeDate - new Date()) / (1000 * 60 * 60 * 24)),
+                  milk_yield: 0,
+                  previous_violations: 0
+                })
+              })
+              const data = await response.json()
+              if (data.success) {
+                riskData = {
+                  violation_probability: data.violation_probability,
+                  risk_level: data.risk_level
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching risk prediction:', error)
+            }
             
             withdrawalAnimals.push({
               ...animal,
@@ -60,7 +87,8 @@ export default function WithdrawalAnimals() {
               doctorName: doctorName,
               injectionDate: injectionDate,
               safeDate: safeDate,
-              daysRemaining: Math.ceil((safeDate - new Date()) / (1000 * 60 * 60 * 24))
+              daysRemaining: Math.ceil((safeDate - new Date()) / (1000 * 60 * 60 * 24)),
+              riskData: riskData
             })
           }
         }
@@ -72,6 +100,12 @@ export default function WithdrawalAnimals() {
 
     return () => unsubscribe()
   }, [navigate])
+
+  const getRiskIcon = (level) => {
+    if (level === 'High') return '🔥'
+    if (level === 'Moderate') return '⚠️'
+    return '✅'
+  }
 
   return (
     <div className="withdrawal-page">
@@ -127,6 +161,16 @@ export default function WithdrawalAnimals() {
                   <i className="fas fa-clock"></i>
                   {animal.daysRemaining} days remaining
                 </div>
+                {animal.riskData && (
+                  <div className="risk-info">
+                    <div className="risk-probability">
+                      {getRiskIcon(animal.riskData.risk_level)} Risk Probability: {animal.riskData.violation_probability}%
+                    </div>
+                    <div className={`risk-level risk-${animal.riskData.risk_level.toLowerCase()}`}>
+                      ⚠ Risk Level: {animal.riskData.risk_level.toUpperCase()}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

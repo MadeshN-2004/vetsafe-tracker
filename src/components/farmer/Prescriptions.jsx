@@ -32,7 +32,20 @@ function Prescriptions() {
         return
       }
 
-      const rxList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      const rxList = snapshot.docs.map(doc => {
+        const data = doc.data()
+        
+        // Calculate safe date if not present
+        if (!data.safeDate && data.createdAt && data.withdrawalDays) {
+          const createdDate = data.createdAt.toDate()
+          const safeDate = new Date(createdDate)
+          safeDate.setDate(safeDate.getDate() + parseInt(data.withdrawalDays))
+          data.safeDate = { toDate: () => safeDate }
+        }
+        
+        return { id: doc.id, ...data }
+      })
+      
       rxList.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0))
       
       setPrescriptions(rxList)

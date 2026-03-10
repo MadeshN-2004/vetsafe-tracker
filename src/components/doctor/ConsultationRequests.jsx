@@ -3,6 +3,31 @@ import { useNavigate } from 'react-router-dom'
 import { auth, db, collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, serverTimestamp, Timestamp, onSnapshot } from '../../config/firebase'
 import './ConsultationRequests.css'
 
+const MEDICINE_LIST = [
+  'Amoxicillin', 'Penicillin', 'Tetracycline', 'Oxytetracycline', 'Doxycycline',
+  'Enrofloxacin', 'Ciprofloxacin', 'Gentamicin', 'Neomycin', 'Streptomycin',
+  'Tylosin', 'Tilmicosin', 'Florfenicol', 'Ceftiofur', 'Ampicillin',
+  'Sulfadimethoxine', 'Trimethoprim-Sulfa', 'Lincomycin', 'Spectinomycin', 'Erythromycin',
+  'Chlortetracycline', 'Bacitracin', 'Colistin', 'Tiamulin', 'Virginiamycin',
+  'Avilamycin', 'Apramycin', 'Kanamycin', 'Cephalexin', 'Cloxacillin',
+  'Ivermectin', 'Albendazole', 'Fenbendazole', 'Levamisole', 'Piperazine',
+  'Mebendazole', 'Oxfendazole', 'Doramectin', 'Eprinomectin', 'Moxidectin',
+  'Pyrantel', 'Thiabendazole', 'Niclosamide', 'Praziquantel', 'Closantel',
+  'Nitroxynil', 'Rafoxanide', 'Triclabendazole', 'Clorsulon', 'Morantel',
+  'Newcastle Disease Vaccine', 'Infectious Bursal Disease Vaccine', 'Marek\'s Disease Vaccine',
+  'Fowl Pox Vaccine', 'Avian Influenza Vaccine', 'Foot and Mouth Disease Vaccine',
+  'Brucellosis Vaccine', 'Anthrax Vaccine', 'Blackleg Vaccine', 'Rabies Vaccine',
+  'Clostridial Vaccine', 'Pasteurella Vaccine', 'E. coli Vaccine', 'Salmonella Vaccine',
+  'Coccidiosis Vaccine', 'Meloxicam', 'Flunixin Meglumine', 'Ketoprofen',
+  'Phenylbutazone', 'Aspirin', 'Carprofen', 'Dexamethasone', 'Prednisolone',
+  'Ibuprofen', 'Diclofenac', 'Vitamin A', 'Vitamin D3', 'Vitamin E',
+  'Vitamin B Complex', 'Vitamin C', 'Calcium Borogluconate', 'Iron Dextran',
+  'Selenium-Vitamin E', 'Multivitamin Injectable', 'Amino Acid Complex',
+  'Amprolium', 'Sulfaquinoxaline', 'Diclazuril', 'Toltrazuril', 'Monensin',
+  'Salinomycin', 'Narasin', 'Lasalocid', 'Oxytocin', 'Atropine',
+  'Epinephrine', 'Furosemide', 'Metoclopramide', 'Diphenhydramine', 'Activated Charcoal'
+]
+
 export default function ConsultationRequests() {
   const navigate = useNavigate()
   const [requests, setRequests] = useState([])
@@ -10,6 +35,8 @@ export default function ConsultationRequests() {
   const [showModal, setShowModal] = useState(false)
   const [currentRequest, setCurrentRequest] = useState(null)
   const [prescriptionData, setPrescriptionData] = useState({ medicineName: '', dosage: '', withdrawalDays: '' })
+  const [filteredMedicines, setFilteredMedicines] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   useEffect(() => {
     let requestsUnsub = null
@@ -69,6 +96,26 @@ export default function ConsultationRequests() {
       console.error('Realtime error:', error)
       setLoading(false)
     }
+  }
+
+  const handleMedicineInput = (value) => {
+    setPrescriptionData({ ...prescriptionData, medicineName: value })
+    
+    if (value.trim()) {
+      const filtered = MEDICINE_LIST.filter(med => 
+        med.toLowerCase().startsWith(value.toLowerCase())
+      )
+      setFilteredMedicines(filtered)
+      setShowSuggestions(true)
+    } else {
+      setFilteredMedicines([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const selectMedicine = (medicine) => {
+    setPrescriptionData({ ...prescriptionData, medicineName: medicine })
+    setShowSuggestions(false)
   }
 
   const handleAccept = async (request) => {
@@ -223,7 +270,30 @@ export default function ConsultationRequests() {
               </div>
               <div className="form-group">
                 <label className="form-label">Medicine Name</label>
-                <input type="text" className="form-input" value={prescriptionData.medicineName} onChange={(e) => setPrescriptionData({ ...prescriptionData, medicineName: e.target.value })} required />
+                <div className="autocomplete-wrapper">
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={prescriptionData.medicineName} 
+                    onChange={(e) => handleMedicineInput(e.target.value)}
+                    onFocus={() => prescriptionData.medicineName && setShowSuggestions(true)}
+                    placeholder="Start typing medicine name..."
+                    required 
+                  />
+                  {showSuggestions && filteredMedicines.length > 0 && (
+                    <div className="suggestions-dropdown">
+                      {filteredMedicines.map((medicine, index) => (
+                        <div 
+                          key={index} 
+                          className="suggestion-item"
+                          onClick={() => selectMedicine(medicine)}
+                        >
+                          {medicine}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Dosage</label>
