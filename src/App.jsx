@@ -21,6 +21,7 @@ import BuyerLogin from './components/buyer/BuyerLogin'
 import BuyerRegister from './components/buyer/BuyerRegister'
 import BuyerDashboard from './components/buyer/BuyerDashboard'
 import BuyerVerify from './components/buyer/BuyerVerify'
+import VetChatbot from './components/chatbot/VetChatbot'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
         <Route path="/buyer-dashboard" element={<BuyerDashboard />} />
         <Route path="/buyer-verify" element={<BuyerVerify />} />
       </Routes>
+      <VetChatbot />
     </Router>
   )
 }

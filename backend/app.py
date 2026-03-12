@@ -11,6 +11,11 @@ import joblib
 import numpy as np
 from datetime import datetime
 import os
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -299,10 +304,147 @@ def home():
         "endpoints": {
             "/health": "GET - Health check",
             "/predict-all": "GET - Predict risk for all Firestore treatments",
-            "/predict": "POST - Predict risk for new treatment data"
+            "/predict": "POST - Predict risk for new treatment data",
+            "/api/chat": "POST - AI veterinary chatbot (context-aware Q&A)"
         },
-        "version": "1.0.0"
+        "version": "1.1.0"
     }), 200
+
+
+@app.route('/test', methods=['GET'])
+def test():
+    """Simple test endpoint"""
+    return jsonify({"message": "Flask server is working!"}), 200
+
+
+@app.route("/api/chat", methods=["POST"])
+def openrouter_chat():
+    """OpenRouter API chat endpoint for VetBot with Tamil language support"""
+    print("\n[CHAT] Endpoint called")
+    
+    try:
+        data = request.json
+        user_message = data.get("message")
+        language = data.get("language", "english")  # Default to English
+        
+        print("USER MESSAGE:", user_message)
+        print("LANGUAGE:", language)
+        
+        if not user_message:
+            return jsonify({"error": "No message provided"}), 400
+        
+        # Get OpenRouter API key
+        api_key = os.environ.get("OPENROUTER_API_KEY", "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")
+        print("API KEY:", api_key[:20] + "...")
+        
+        # Detect if message contains Tamil characters
+        has_tamil = any('\u0B80' <= char <= '\u0BFF' for char in user_message)
+        
+        # Add veterinary system prompt with Tamil support
+        if has_tamil or language == "tamil":
+            system_prompt = """You are VetBot, an expert AI veterinary assistant specializing in poultry and livestock health. 
+            The user is speaking in Tamil. You MUST respond in Tamil language (தமிழ்).
+            Provide concise, accurate advice about animal diseases, antibiotic usage, withdrawal periods, and food safety IN TAMIL.
+            Always recommend consulting a licensed veterinarian for medical decisions.
+            Use simple Tamil words that farmers can understand easily."""
+        else:
+            system_prompt = """You are VetBot, an expert AI veterinary assistant specializing in poultry and livestock health. 
+            Provide concise, accurate advice about animal diseases, antibiotic usage, withdrawal periods, and food safety. 
+            Always recommend consulting a licensed veterinarian for medical decisions."""
+        
+        full_message = f"{system_prompt}\n\nUser: {user_message}"
+
+        url = "https://openrouter.ai/api/v1/chat/completions"
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:5173",
+            "X-Title": "VetBot"
+        }
+
+        payload = {
+            "model": "meta-llama/llama-3.1-8b-instruct",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": full_message
+                }
+            ]
+        }
+
+        print("Making OpenRouter API request...")
+        
+        response = requests.post(url, headers=headers, json=payload)
+        
+        print("Response status:", response.status_code)
+        print("Response text:", response.text)
+        
+        result = response.json()
+        
+        # Extract response text
+        if "choices" in result and len(result["choices"]) > 0:
+            response_text = result["choices"][0]["message"]["content"]
+            return jsonify({"response": response_text})
+        else:
+            return jsonify({"response": "I'm having trouble responding right now. Please try again."})
+
+    except Exception as e:
+        print("[OPENROUTER CHAT ERROR]", e)
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/tts", methods=["POST"])
+def text_to_speech():
+    """Text-to-Speech endpoint using Google TTS for Tamil language"""
+    print("\n[TTS] Endpoint called")
+    
+    try:
+        from gtts import gTTS
+        from io import BytesIO
+        
+        data = request.json
+        text = data.get("text")
+        language = data.get("language", "ta")  # Default to Tamil
+        
+        print(f"TTS TEXT: {text[:50]}...")
+        print(f"TTS LANGUAGE: {language}")
+        
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+        
+        # Generate speech using gTTS
+        tts = gTTS(text=text, lang=language, slow=False)
+        
+        # Save to BytesIO buffer
+        audio_buffer = BytesIO()
+        tts.write_to_fp(audio_buffer)
+        audio_buffer.seek(0)
+        
+        print("[TTS] Audio generated successfully")
+        
+        # Return audio file
+        from flask import send_file
+        return send_file(
+            audio_buffer,
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="speech.mp3"
+        )
+    
+    except ImportError:
+        print("[TTS ERROR] gTTS not installed")
+        return jsonify({
+            "error": "gTTS library not installed. Run: pip install gtts"
+        }), 500
+    
+    except Exception as e:
+        print(f"[TTS ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
