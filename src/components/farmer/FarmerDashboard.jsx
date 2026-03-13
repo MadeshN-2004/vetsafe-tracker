@@ -186,7 +186,10 @@ function FarmerDashboard() {
             <li><a href="#" className="nav-link" onClick={() =>navigate('/farmer-sold-history')}><i className="fas fa-shopping-cart"></i><span>Product Sold</span></a></li>
             <li><a href="#" className="nav-link" ><i className="fas fa-clipboard-list"></i><span>Compliance</span></a></li>
             <li><a href="#" className="nav-link"><i className="fas fa-bell"></i><span>Notifications</span></a></li>
-            <li><a href="#" className="nav-link" onClick={() =>navigate('/')}><i className="fas fa-cog"></i><span>Logout</span></a></li>
+            <li><a href="#" className="nav-link" onClick={async () => {
+              await signOut(auth)
+              navigate('/')
+            }}><i className="fas fa-cog"></i><span>Logout</span></a></li>
           </ul>
         </nav>
       </aside>

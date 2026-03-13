@@ -11,7 +11,7 @@ import joblib
 import numpy as np
 from datetime import datetime
 import os
-import requests
+from openai import OpenAI
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -325,7 +325,7 @@ def openrouter_chat():
     try:
         data = request.json
         user_message = data.get("message")
-        language = data.get("language", "english")  # Default to English
+        language = data.get("language", "english")
         
         print("USER MESSAGE:", user_message)
         print("LANGUAGE:", language)
@@ -334,7 +334,10 @@ def openrouter_chat():
             return jsonify({"error": "No message provided"}), 400
         
         # Get OpenRouter API key
-        api_key = os.environ.get("OPENROUTER_API_KEY", "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")
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            return jsonify({"error": "OpenRouter API key not configured"}), 500
+            
         print("API KEY:", api_key[:20] + "...")
         
         # Detect if message contains Tamil characters
@@ -351,46 +354,28 @@ def openrouter_chat():
             system_prompt = """You are VetBot, an expert AI veterinary assistant specializing in poultry and livestock health. 
             Provide concise, accurate advice about animal diseases, antibiotic usage, withdrawal periods, and food safety. 
             Always recommend consulting a licensed veterinarian for medical decisions."""
-        
-        full_message = f"{system_prompt}\n\nUser: {user_message}"
-
-        url = "https://openrouter.ai/api/v1/chat/completions"
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:5173",
-            "X-Title": "VetBot"
-        }
-
-        payload = {
-            "model": "meta-llama/llama-3.1-8b-instruct",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": full_message
-                }
-            ]
-        }
 
         print("Making OpenRouter API request...")
         
-        response = requests.post(url, headers=headers, json=payload)
-        
-        print("Response status:", response.status_code)
-        print("Response text:", response.text)
-        
-        result = response.json()
-        
-        # Extract response text
-        if "choices" in result and len(result["choices"]) > 0:
-            response_text = result["choices"][0]["message"]["content"]
-            return jsonify({"response": response_text})
-        else:
-            return jsonify({"response": "I'm having trouble responding right now. Please try again."})
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key
+        )
+
+        completion = client.chat.completions.create(
+            model="openrouter/free",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ]
+        )
+
+        response_text = completion.choices[0].message.content
+        print("Response received successfully")
+        return jsonify({"response": response_text})
 
     except Exception as e:
-        print("[OPENROUTER CHAT ERROR]", e)
+        print("[CHAT ERROR]", e)
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
