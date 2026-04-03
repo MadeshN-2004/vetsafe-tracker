@@ -331,14 +331,20 @@ def openrouter_chat():
         print("LANGUAGE:", language)
         
         if not user_message:
+            print("[ERROR] No message provided")
             return jsonify({"error": "No message provided"}), 400
         
         # Get OpenRouter API key
         api_key = os.environ.get("OPENROUTER_API_KEY")
         if not api_key:
+            print("[ERROR] OpenRouter API key not configured")
             return jsonify({"error": "OpenRouter API key not configured"}), 500
+        
+        if api_key == "your_openrouter_api_key_here":
+            print("[ERROR] OpenRouter API key not set (still using placeholder)")
+            return jsonify({"error": "OpenRouter API key not configured properly"}), 500
             
-        print("API KEY:", api_key[:20] + "...")
+        print("API KEY:", api_key[:20] + "..." if len(api_key) > 20 else "[SHORT KEY]")
         
         # Detect if message contains Tamil characters
         has_tamil = any('\u0B80' <= char <= '\u0BFF' for char in user_message)
@@ -356,26 +362,37 @@ def openrouter_chat():
             Always recommend consulting a licensed veterinarian for medical decisions."""
 
         print("Making OpenRouter API request...")
+        print(f"Model: openrouter/free")
         
-        client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=api_key
-        )
+        try:
+            client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key
+            )
 
-        completion = client.chat.completions.create(
-            model="openrouter/free",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ]
-        )
+            completion = client.chat.completions.create(
+                model="meta-llama/llama-3.3-70b-instruct:free",  # FREE, excellent Tamil support
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message}
+                ]
+            )
 
-        response_text = completion.choices[0].message.content
-        print("Response received successfully")
-        return jsonify({"response": response_text})
+            response_text = completion.choices[0].message.content
+            print("[SUCCESS] Response received successfully")
+            print(f"Response length: {len(response_text)} characters")
+            return jsonify({"response": response_text})
+        
+        except Exception as api_error:
+            print(f"[API ERROR] OpenRouter API call failed: {str(api_error)}")
+            print(f"[API ERROR] Error type: {type(api_error).__name__}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"OpenRouter API error: {str(api_error)}"}), 500
 
     except Exception as e:
-        print("[CHAT ERROR]", e)
+        print(f"[CHAT ERROR] General error: {str(e)}")
+        print(f"[CHAT ERROR] Error type: {type(e).__name__}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

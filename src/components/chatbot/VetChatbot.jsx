@@ -38,6 +38,8 @@ const QUICK_QUESTIONS = [
   '⚠️ When to call a vet urgently?',
 ]
 
+const API_URL = import.meta.env.VITE_API_URL
+
 export default function VetChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
@@ -281,7 +283,7 @@ export default function VetChatbot() {
     setShowQuickQ(false)
 
     try {
-      const response = await fetch('http://localhost:5000/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
