@@ -26,6 +26,7 @@ import Chat from './components/chat/Chat'
 import FarmerChat from './components/chat/FarmerChat'
 import DoctorChat from './components/chat/DoctorChat'
 import ChatWithDoctor from './components/farmer/ChatWithDoctor'
+import Analytics from './components/doctor/Analytics'
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
         <Route path="/buyer-verify" element={<BuyerVerify />} />
         <Route path="/farmer-chat" element={<ChatWithDoctor />} />
         <Route path="/doctor-chat" element={<DoctorChat />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/chat/:roomId" element={<Chat />} />
       </Routes>
       <VetChatbot />

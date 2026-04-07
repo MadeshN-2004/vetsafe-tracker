@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp } from '../../config/firebase'
-import './BuyerRegister.css'
 
 export default function BuyerRegister() {
   const navigate = useNavigate()
@@ -87,144 +86,264 @@ export default function BuyerRegister() {
     debounceTimer = setTimeout(() => handleLocationSearch(value), 500)
   }
 
+  const getPasswordStrength = () => {
+    const len = formData.password.length
+    if (len === 0) return { width: '0%', text: '', color: '' }
+    if (len < 6) return { width: '30%', text: 'Weak', color: 'bg-red-500' }
+    if (len < 9) return { width: '60%', text: 'Medium', color: 'bg-yellow-500' }
+    return { width: '100%', text: 'Strong', color: 'bg-green-500' }
+  }
+
+  const strength = getPasswordStrength()
+
   return (
-    <div className="buyer-register-body">
-      {/* Animated Background Elements */}
-      <div className="bg-shapes">
-        <div className="shape shape-1"></div>
-        <div className="shape shape-2"></div>
-        <div className="shape shape-3"></div>
-      </div>
+    <>
+      <style>{`
+        .glass-card {
+          background: rgba(37, 37, 48, 0.6);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+        }
+        .neon-glow {
+          box-shadow: 0px 10px 30px rgba(174, 163, 255, 0.25);
+        }
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+          min-height: max(884px, 100dvh);
+        }
+      `}</style>
 
-      {/* Floating Icons */}
-      <div className="floating-icons">
-        <span className="float-icon icon-1">🛒</span>
-        <span className="float-icon icon-2">🥩</span>
-        <span className="float-icon icon-3">🐄</span>
-        <span className="float-icon icon-4">📦</span>
-        <span className="float-icon icon-5">✅</span>
-      </div>
-
-      <div className="register-container">
-        {/* Progress Indicator */}
-        <div className="progress-dots">
-          <span className="dot active"></span>
-          <span className="dot"></span>
-          <span className="dot"></span>
-        </div>
-
-        <div className="header">
-          <div className="header-icon-wrapper">
-            <div className="icon-circle"></div>
-            <div className="header-icon">🛒</div>
+      <div className="bg-[#0d0d15] text-[#efecf8] font-['Manrope'] min-h-screen flex flex-col">
+        {/* TopAppBar */}
+        <header className="fixed top-0 w-full z-50 bg-[#0d0d15] flex items-center justify-between px-6 h-16">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#aea3ff]">security</span>
+            <h1 className="text-xl font-black tracking-tighter text-[#efecf8] font-['Epilogue']">VetSafe Tracker</h1>
           </div>
-          <h2>Buyer Registration</h2>
-          <p className="subtitle">Join as a Livestock Buyer</p>
+          <div className="md:flex hidden gap-6">
+            <a className="text-[#aea3ff] font-['Epilogue'] font-bold tracking-tight cursor-pointer" onClick={() => navigate('/buyer-login')}>Login</a>
+            <a className="text-[#efecf8] font-['Epilogue'] font-bold tracking-tight hover:bg-[#252530] transition-colors" href="#">Help</a>
+            <a className="text-[#efecf8] font-['Epilogue'] font-bold tracking-tight hover:bg-[#252530] transition-colors" href="#">Legal</a>
+          </div>
+        </header>
+
+        <main className="flex-grow flex items-center justify-center px-6 pt-20 pb-28 relative overflow-hidden">
+          {/* Ambient background glow elements */}
+          <div className="absolute top-1/4 -left-20 w-64 h-64 bg-[#aea3ff]/10 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-[#81ecff]/10 rounded-full blur-[100px]"></div>
           
-          {/* Stats Badge */}
-          <div className="stats-badge">
-            <span className="badge-icon">👥</span>
-            <span className="badge-text">300+ Buyers Already Joined</span>
-          </div>
-        </div>
+          <div className="w-full max-w-md">
+            {/* Progress Dots */}
+            <div className="flex justify-center gap-2 mb-6">
+              <div className="w-6 h-2 rounded-full bg-gradient-to-r from-[#aea3ff] to-[#81ecff]"></div>
+              <div className="w-2 h-2 rounded-full bg-[#484750]"></div>
+              <div className="w-2 h-2 rounded-full bg-[#484750]"></div>
+            </div>
 
-        <div className="info-box">
-          <strong>🥩 For Meat & Livestock Buyers</strong>
-          Register to access quality livestock products and connect with verified farmers.
-        </div>
+            {/* Header Section */}
+            <div className="mb-10 space-y-2 text-center md:text-left">
+              <h2 className="text-4xl font-['Epilogue'] font-extrabold tracking-tight text-[#efecf8]">Buyer Registration</h2>
+              <p className="text-[#acaab5] font-medium">Join as a Livestock Buyer</p>
+              
+              {/* Stats Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#252530] rounded-full mt-4">
+                <span className="material-symbols-outlined text-[#aea3ff] text-sm">group</span>
+                <span className="text-xs font-semibold text-[#acaab5]">300+ Buyers Already Joined</span>
+              </div>
+            </div>
 
-        {message.text && <div className={`message ${message.type} show`}><span className="msg-icon">{message.type === 'error' ? '⚠️' : '✅'}</span>{message.text}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>
-              <span className="label-icon">👤</span>
-              Full Name
-            </label>
-            <input type="text" placeholder="Enter your full name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-          </div>
-
-          <div className="form-group">
-            <label>
-              <span className="label-icon">📍</span>
-              Business Location
-            </label>
-            <input type="text" placeholder="Search your location" value={formData.location} onChange={(e) => handleLocationInput(e.target.value)} required />
-            {locations.length > 0 && (
-              <div className="location-dropdown">
-                {locations.map((place, idx) => (
-                  <div key={idx} className="location-item" onClick={() => handleLocationSelect(place)}>
-                    {place.display_name}
+            {/* Register Card */}
+            <div className="glass-card rounded-3xl p-8 shadow-2xl relative">
+              {/* Branding Accent */}
+              <div className="absolute top-0 right-8 w-16 h-1 bg-gradient-to-r from-[#aea3ff] to-[#81ecff] rounded-b-full"></div>
+              
+              {/* Info Box */}
+              <div className="mb-6 p-4 bg-[#252530] rounded-2xl border border-[#484750]/20">
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-[#aea3ff] text-xl">info</span>
+                  <div>
+                    <p className="text-sm font-semibold text-[#efecf8] mb-1">🥩 For Meat & Livestock Buyers</p>
+                    <p className="text-xs text-[#acaab5]">Register to access quality livestock products and connect with verified farmers.</p>
                   </div>
-                ))}
+                </div>
               </div>
-            )}
-          </div>
 
-          <div className="form-group">
-            <label>
-              <span className="label-icon">✉️</span>
-              Email
-            </label>
-            <input type="email" placeholder="your.email@example.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-          </div>
+              <div className="space-y-6">
+                {message.text && (
+                  <div className={`p-4 rounded-2xl ${message.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'} text-sm font-semibold`}>
+                    {message.text}
+                  </div>
+                )}
 
-          <div className="form-group">
-            <label>
-              <span className="label-icon">🔒</span>
-              Password
-            </label>
-            <div className="password-wrapper">
-              <input type={showPassword ? 'text' : 'password'} placeholder="Create a strong password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required minLength="6" />
-              <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-            <div className="password-strength">
-              <div className="strength-bar">
-                <div className="strength-fill" style={{ width: formData.password.length > 8 ? '100%' : formData.password.length > 5 ? '60%' : '30%' }}></div>
+                {/* Input Fields */}
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-[#acaab5] ml-1">Full Name</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <span className="material-symbols-outlined text-[#76747f] group-focus-within:text-[#aea3ff] transition-colors">person</span>
+                      </div>
+                      <input 
+                        className="w-full bg-[#13131b] border-none rounded-2xl py-4 pl-12 pr-4 text-[#efecf8] placeholder:text-[#76747f] focus:ring-2 focus:ring-[#aea3ff]/50 transition-all outline-none" 
+                        placeholder="Enter your full name" 
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-[#acaab5] ml-1">Business Location</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <span className="material-symbols-outlined text-[#76747f] group-focus-within:text-[#aea3ff] transition-colors">location_on</span>
+                      </div>
+                      <input 
+                        className="w-full bg-[#13131b] border-none rounded-2xl py-4 pl-12 pr-4 text-[#efecf8] placeholder:text-[#76747f] focus:ring-2 focus:ring-[#aea3ff]/50 transition-all outline-none" 
+                        placeholder="Search your location" 
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => handleLocationInput(e.target.value)}
+                        required
+                      />
+                      {locations.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#252530] rounded-2xl border border-[#484750] max-h-48 overflow-y-auto z-50">
+                          {locations.map((place, idx) => (
+                            <div 
+                              key={idx} 
+                              className="px-4 py-3 hover:bg-[#2b2b38] cursor-pointer text-sm text-[#efecf8] border-b border-[#484750]/20 last:border-b-0"
+                              onClick={() => handleLocationSelect(place)}
+                            >
+                              {place.display_name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-[#acaab5] ml-1">Email Address</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <span className="material-symbols-outlined text-[#76747f] group-focus-within:text-[#aea3ff] transition-colors">mail</span>
+                      </div>
+                      <input 
+                        className="w-full bg-[#13131b] border-none rounded-2xl py-4 pl-12 pr-4 text-[#efecf8] placeholder:text-[#76747f] focus:ring-2 focus:ring-[#aea3ff]/50 transition-all outline-none" 
+                        placeholder="your.email@example.com" 
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-[#acaab5] ml-1">Password</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <span className="material-symbols-outlined text-[#76747f] group-focus-within:text-[#aea3ff] transition-colors">lock</span>
+                      </div>
+                      <input 
+                        className="w-full bg-[#13131b] border-none rounded-2xl py-4 pl-12 pr-12 text-[#efecf8] placeholder:text-[#76747f] focus:ring-2 focus:ring-[#aea3ff]/50 transition-all outline-none" 
+                        placeholder="Create a strong password" 
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                        minLength="6"
+                      />
+                      <div className="absolute inset-y-0 right-4 flex items-center">
+                        <span 
+                          className="material-symbols-outlined text-[#76747f] cursor-pointer hover:text-[#efecf8]"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Password Strength */}
+                    {formData.password && (
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex-1 h-1.5 bg-[#252530] rounded-full overflow-hidden">
+                          <div className={`h-full ${strength.color} transition-all duration-300`} style={{ width: strength.width }}></div>
+                        </div>
+                        <span className="text-xs font-semibold text-[#acaab5]">{strength.text}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit Button */}
+                  <button 
+                    className="w-full bg-gradient-to-r from-[#aea3ff] to-[#9f92ff] py-5 rounded-2xl text-[#000000] font-bold text-lg tracking-tight neon-glow hover:scale-[0.98] transition-transform duration-200 disabled:opacity-50 flex items-center justify-center gap-2" 
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                        <span>REGISTERING...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>REGISTER AS BUYER</span>
+                        <span className="material-symbols-outlined">arrow_forward</span>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
-              <span className="strength-text">
-                {formData.password.length > 8 ? 'Strong' : formData.password.length > 5 ? 'Medium' : formData.password.length > 0 ? 'Weak' : ''}
-              </span>
+            </div>
+
+            {/* Footer Text */}
+            <p className="mt-8 text-center text-[#acaab5] text-sm">
+              Already have an account? <a className="text-[#aea3ff] font-bold hover:underline decoration-2 underline-offset-4 cursor-pointer" onClick={() => navigate('/buyer-login')}>Login here</a>
+            </p>
+
+            {/* Trust Badges */}
+            <div className="flex justify-center gap-8 mt-6 pt-6 border-t border-[#484750]/20">
+              <div className="flex flex-col items-center gap-2">
+                <span className="material-symbols-outlined text-[#aea3ff] text-2xl">lock</span>
+                <span className="text-xs font-semibold text-[#acaab5]">Secure</span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <span className="material-symbols-outlined text-[#aea3ff] text-2xl">bolt</span>
+                <span className="text-xs font-semibold text-[#acaab5]">Fast Setup</span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <span className="material-symbols-outlined text-[#aea3ff] text-2xl">verified</span>
+                <span className="text-xs font-semibold text-[#acaab5]">Verified</span>
+              </div>
             </div>
           </div>
+        </main>
 
-          <button className="submit-btn" type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                <span>Registering...</span>
-              </>
-            ) : (
-              <>
-                <span>Register as Buyer</span>
-                <span className="button-arrow">→</span>
-              </>
-            )}
-          </button>
-        </form>
+        {/* BottomNavBar */}
+        <nav className="fixed bottom-0 w-full z-50 rounded-t-[1.5rem] bg-[#0d0d15]/80 backdrop-blur-xl shadow-[0px_-10px_30px_rgba(174,163,255,0.05)] flex justify-around items-center h-20 pb-safe px-4">
+          <a className="flex flex-col items-center justify-center bg-[#252530] text-[#aea3ff] rounded-2xl px-4 py-1.5 scale-98 duration-150" href="#">
+            <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>person_add</span>
+            <span className="font-['Manrope'] text-xs font-semibold">Register</span>
+          </a>
+          <a className="flex flex-col items-center justify-center text-[#efecf8]/60 hover:text-[#aea3ff] transition-all duration-150" href="#">
+            <span className="material-symbols-outlined">help_outline</span>
+            <span className="font-['Manrope'] text-xs font-semibold">Help</span>
+          </a>
+          <a className="flex flex-col items-center justify-center text-[#efecf8]/60 hover:text-[#aea3ff] transition-all duration-150" href="#">
+            <span className="material-symbols-outlined">gavel</span>
+            <span className="font-['Manrope'] text-xs font-semibold">Legal</span>
+          </a>
+        </nav>
 
-        <div className="login-link">
-          Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/buyer-login'); }}>Login here</a>
-        </div>
-
-        {/* Trust Badges */}
-        <div className="trust-badges">
-          <div className="trust-item">
-            <span className="trust-icon">🔒</span>
-            <span>Secure</span>
-          </div>
-          <div className="trust-item">
-            <span className="trust-icon">⚡</span>
-            <span>Fast Setup</span>
-          </div>
-          <div className="trust-item">
-            <span className="trust-icon">✓</span>
-            <span>Verified</span>
-          </div>
+        {/* Background Decoration */}
+        <div className="fixed top-0 right-0 p-12 opacity-10 -z-10 pointer-events-none">
+          <span className="material-symbols-outlined text-[300px]">pets</span>
         </div>
       </div>
-    </div>
+    </>
   )
 }
