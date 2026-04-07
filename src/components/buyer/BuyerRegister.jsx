@@ -89,11 +89,43 @@ export default function BuyerRegister() {
 
   return (
     <div className="buyer-register-body">
+      {/* Animated Background Elements */}
+      <div className="bg-shapes">
+        <div className="shape shape-1"></div>
+        <div className="shape shape-2"></div>
+        <div className="shape shape-3"></div>
+      </div>
+
+      {/* Floating Icons */}
+      <div className="floating-icons">
+        <span className="float-icon icon-1">🛒</span>
+        <span className="float-icon icon-2">🥩</span>
+        <span className="float-icon icon-3">🐄</span>
+        <span className="float-icon icon-4">📦</span>
+        <span className="float-icon icon-5">✅</span>
+      </div>
+
       <div className="register-container">
+        {/* Progress Indicator */}
+        <div className="progress-dots">
+          <span className="dot active"></span>
+          <span className="dot"></span>
+          <span className="dot"></span>
+        </div>
+
         <div className="header">
-          <div className="header-icon">🛒</div>
+          <div className="header-icon-wrapper">
+            <div className="icon-circle"></div>
+            <div className="header-icon">🛒</div>
+          </div>
           <h2>Buyer Registration</h2>
           <p className="subtitle">Join as a Livestock Buyer</p>
+          
+          {/* Stats Badge */}
+          <div className="stats-badge">
+            <span className="badge-icon">👥</span>
+            <span className="badge-text">300+ Buyers Already Joined</span>
+          </div>
         </div>
 
         <div className="info-box">
@@ -101,17 +133,23 @@ export default function BuyerRegister() {
           Register to access quality livestock products and connect with verified farmers.
         </div>
 
-        {message.text && <div className={`message ${message.type} show`}>{message.text}</div>}
+        {message.text && <div className={`message ${message.type} show`}><span className="msg-icon">{message.type === 'error' ? '⚠️' : '✅'}</span>{message.text}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Full Name</label>
+            <label>
+              <span className="label-icon">👤</span>
+              Full Name
+            </label>
             <input type="text" placeholder="Enter your full name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
           </div>
 
           <div className="form-group">
-            <label>Business Location</label>
-            <input type="text" placeholder="📍 Search your location" value={formData.location} onChange={(e) => handleLocationInput(e.target.value)} required />
+            <label>
+              <span className="label-icon">📍</span>
+              Business Location
+            </label>
+            <input type="text" placeholder="Search your location" value={formData.location} onChange={(e) => handleLocationInput(e.target.value)} required />
             {locations.length > 0 && (
               <div className="location-dropdown">
                 {locations.map((place, idx) => (
@@ -124,27 +162,67 @@ export default function BuyerRegister() {
           </div>
 
           <div className="form-group">
-            <label>Email</label>
+            <label>
+              <span className="label-icon">✉️</span>
+              Email
+            </label>
             <input type="email" placeholder="your.email@example.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>
+              <span className="label-icon">🔒</span>
+              Password
+            </label>
             <div className="password-wrapper">
               <input type={showPassword ? 'text' : 'password'} placeholder="Create a strong password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required minLength="6" />
               <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
                 {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
+            <div className="password-strength">
+              <div className="strength-bar">
+                <div className="strength-fill" style={{ width: formData.password.length > 8 ? '100%' : formData.password.length > 5 ? '60%' : '30%' }}></div>
+              </div>
+              <span className="strength-text">
+                {formData.password.length > 8 ? 'Strong' : formData.password.length > 5 ? 'Medium' : formData.password.length > 0 ? 'Weak' : ''}
+              </span>
+            </div>
           </div>
 
           <button className="submit-btn" type="submit" disabled={loading}>
-            {loading ? 'Registering...' : 'Register as Buyer'}
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                <span>Registering...</span>
+              </>
+            ) : (
+              <>
+                <span>Register as Buyer</span>
+                <span className="button-arrow">→</span>
+              </>
+            )}
           </button>
         </form>
 
         <div className="login-link">
           Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/buyer-login'); }}>Login here</a>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="trust-badges">
+          <div className="trust-item">
+            <span className="trust-icon">🔒</span>
+            <span>Secure</span>
+          </div>
+          <div className="trust-item">
+            <span className="trust-icon">⚡</span>
+            <span>Fast Setup</span>
+          </div>
+          <div className="trust-item">
+            <span className="trust-icon">✓</span>
+            <span>Verified</span>
+          </div>
         </div>
       </div>
     </div>

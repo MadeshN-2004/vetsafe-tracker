@@ -371,7 +371,7 @@ def openrouter_chat():
             )
 
             completion = client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",  # FREE, excellent Tamil support
+                model="google/gemini-flash-1.5",  # FREE Google Gemini
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}

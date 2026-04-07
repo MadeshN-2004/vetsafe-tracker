@@ -5,7 +5,7 @@
 // FEATURES: Voice input (Tamil), Text-to-Speech (Tamil)
 // ============================================================
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './VetChatbot.css'
 
 // ── System prompt: scopes the AI to poultry/veterinary topics ──
@@ -57,10 +57,66 @@ export default function VetChatbot() {
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [currentSpeakingIndex, setCurrentSpeakingIndex] = useState(null)
+  const [fabPos, setFabPos] = useState({ x: window.innerWidth - 86, y: window.innerHeight - 86 })
+  const [winPos, setWinPos] = useState(null)
+  const draggingFab = useRef(false)
+  const draggingWin = useRef(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
+  const fabMoved = useRef(false)
+  const fabRef = useRef(null)
+  const winRef = useRef(null)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const recognitionRef = useRef(null)
   const speechSynthesisRef = useRef(null)
+
+  // ── Drag logic ──
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (draggingFab.current) {
+        fabMoved.current = true
+        const x = Math.min(Math.max(0, e.clientX - dragOffset.current.x), window.innerWidth - 58)
+        const y = Math.min(Math.max(0, e.clientY - dragOffset.current.y), window.innerHeight - 58)
+        setFabPos({ x, y })
+      }
+      if (draggingWin.current) {
+        const w = winRef.current?.offsetWidth || 380
+        const h = winRef.current?.offsetHeight || 500
+        const x = Math.min(Math.max(0, e.clientX - dragOffset.current.x), window.innerWidth - w)
+        const y = Math.min(Math.max(0, e.clientY - dragOffset.current.y), window.innerHeight - h)
+        setWinPos({ x, y })
+      }
+    }
+    const onMouseUp = () => { draggingFab.current = false; draggingWin.current = false }
+    const onTouchMove = (e) => {
+      const t = e.touches[0]
+      if (draggingFab.current) {
+        const x = Math.min(Math.max(0, t.clientX - dragOffset.current.x), window.innerWidth - 58)
+        const y = Math.min(Math.max(0, t.clientY - dragOffset.current.y), window.innerHeight - 58)
+        setFabPos({ x, y })
+        e.preventDefault()
+      }
+      if (draggingWin.current) {
+        const w = winRef.current?.offsetWidth || 380
+        const h = winRef.current?.offsetHeight || 500
+        const x = Math.min(Math.max(0, t.clientX - dragOffset.current.x), window.innerWidth - w)
+        const y = Math.min(Math.max(0, t.clientY - dragOffset.current.y), window.innerHeight - h)
+        setWinPos({ x, y })
+        e.preventDefault()
+      }
+    }
+    const onTouchEnd = () => { draggingFab.current = false; draggingWin.current = false }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend', onTouchEnd)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [])
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -380,10 +436,27 @@ export default function VetChatbot() {
     <>
       {/* ── Floating toggle button ── */}
       <button
+        ref={fabRef}
         className={`vc-fab ${isOpen ? 'vc-fab--open' : ''}`}
+        style={{ left: fabPos.x, top: fabPos.y, bottom: 'auto', right: 'auto' }}
+        onMouseDown={(e) => {
+          draggingFab.current = true
+          fabMoved.current = false
+          dragOffset.current = { x: e.clientX - fabPos.x, y: e.clientY - fabPos.y }
+          e.preventDefault()
+        }}
+        onTouchStart={(e) => {
+          draggingFab.current = true
+          fabMoved.current = false
+          const t = e.touches[0]
+          dragOffset.current = { x: t.clientX - fabPos.x, y: t.clientY - fabPos.y }
+        }}
         onClick={() => {
-          setIsOpen(!isOpen)
-          setIsMinimized(false)
+          if (!fabMoved.current) {
+            setIsOpen(!isOpen)
+            setIsMinimized(false)
+          }
+          fabMoved.current = false
         }}
         aria-label="Open VetBot AI Assistant"
       >
@@ -407,9 +480,31 @@ export default function VetChatbot() {
 
       {/* ── Chat window ── */}
       {isOpen && (
-        <div className={`vc-window ${isMinimized ? 'vc-window--minimized' : ''}`}>
+        <div
+          ref={winRef}
+          className={`vc-window ${isMinimized ? 'vc-window--minimized' : ''}`}
+          style={winPos
+            ? { left: winPos.x, top: winPos.y, bottom: 'auto', right: 'auto' }
+            : { left: Math.min(fabPos.x, window.innerWidth - 392), top: Math.max(8, fabPos.y - 620), bottom: 'auto', right: 'auto' }
+          }
+        >
           {/* Header */}
-          <div className="vc-header">
+          <div
+            className="vc-header"
+            style={{ cursor: 'grab' }}
+            onMouseDown={(e) => {
+              draggingWin.current = true
+              const rect = winRef.current?.getBoundingClientRect()
+              dragOffset.current = { x: e.clientX - (rect?.left || 0), y: e.clientY - (rect?.top || 0) }
+              e.preventDefault()
+            }}
+            onTouchStart={(e) => {
+              draggingWin.current = true
+              const t = e.touches[0]
+              const rect = winRef.current?.getBoundingClientRect()
+              dragOffset.current = { x: t.clientX - (rect?.left || 0), y: t.clientY - (rect?.top || 0) }
+            }}
+          >
             <div className="vc-header-info">
               <div className="vc-avatar">
                 <span>🐾</span>

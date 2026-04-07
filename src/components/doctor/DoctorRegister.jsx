@@ -81,8 +81,6 @@ export default function DoctorRegister() {
 
     } catch (error) {
       console.error('Registration error:', error)
-      console.error('Error code:', error.code)
-      console.error('Error message:', error.message)
       const errorMessages = {
         'auth/email-already-in-use': 'This email is already registered. Please login or use a different email.',
         'auth/invalid-email': 'Invalid email address format.',
@@ -96,10 +94,42 @@ export default function DoctorRegister() {
 
   return (
     <div className="register-body">
+      {/* Animated Background Elements */}
+      <div className="bg-shapes">
+        <div className="shape shape-1"></div>
+        <div className="shape shape-2"></div>
+        <div className="shape shape-3"></div>
+      </div>
+
+      {/* Floating Icons */}
+      <div className="floating-icons">
+        <span className="float-icon icon-1">🩺</span>
+        <span className="float-icon icon-2">💊</span>
+        <span className="float-icon icon-3">🔬</span>
+        <span className="float-icon icon-4">⚕️</span>
+        <span className="float-icon icon-5">🏥</span>
+      </div>
+
       <div className="register-container">
+        {/* Progress Indicator */}
+        <div className="progress-dots">
+          <span className="dot active"></span>
+          <span className="dot"></span>
+          <span className="dot"></span>
+        </div>
+
         <div className="header">
-          <h1><span className="emoji">👨⚕️</span> Veterinary Doctor Registration</h1>
+          <div className="header-icon-wrapper">
+            <div className="icon-circle"></div>
+            <h1><span className="emoji">👨‍⚕️</span> Veterinary Doctor Registration</h1>
+          </div>
           <p>Join as a Veterinary Professional</p>
+          
+          {/* Stats Badge */}
+          <div className="stats-badge">
+            <span className="badge-icon">👥</span>
+            <span className="badge-text">500+ Vets Already Joined</span>
+          </div>
         </div>
 
         <div className="info-box">
@@ -109,13 +139,19 @@ export default function DoctorRegister() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Full Name</label>
+            <label>
+              <span className="label-icon">👤</span>
+              Full Name
+            </label>
             <input type="text" placeholder="Dr. Your Full Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
           </div>
 
           <div className="form-group">
-            <label>Practice Location</label>
-            <input type="text" list="locations" placeholder="📍 Search your location" value={formData.location} onChange={handleLocationChange} required />
+            <label>
+              <span className="label-icon">📍</span>
+              Practice Location
+            </label>
+            <input type="text" list="locations" placeholder="Search your location" value={formData.location} onChange={handleLocationChange} required />
             <datalist id="locations">
               {locations.map((loc, i) => (
                 <option key={i} value={loc.display_name} />
@@ -124,28 +160,67 @@ export default function DoctorRegister() {
           </div>
 
           <div className="form-group">
-            <label>Email</label>
+            <label>
+              <span className="label-icon">✉️</span>
+              Email
+            </label>
             <input type="email" placeholder="your.email@example.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>
+              <span className="label-icon">🔒</span>
+              Password
+            </label>
             <div className="password-wrapper">
               <input type={showPassword ? 'text' : 'password'} placeholder="Create a strong password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required minLength="6" />
               <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>{showPassword ? '🙈' : '👁️'}</button>
             </div>
+            <div className="password-strength">
+              <div className="strength-bar">
+                <div className="strength-fill" style={{ width: formData.password.length > 8 ? '100%' : formData.password.length > 5 ? '60%' : '30%' }}></div>
+              </div>
+              <span className="strength-text">
+                {formData.password.length > 8 ? 'Strong' : formData.password.length > 5 ? 'Medium' : formData.password.length > 0 ? 'Weak' : ''}
+              </span>
+            </div>
           </div>
 
           <button className="submit-btn" type="submit" disabled={loading}>
-            <span>{loading ? 'Registering...' : 'Register as Doctor'}</span>
-            {loading && <span className="spinner"></span>}
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                <span>Registering...</span>
+              </>
+            ) : (
+              <>
+                <span>Register as Doctor</span>
+                <span className="button-arrow">→</span>
+              </>
+            )}
           </button>
         </form>
 
-        {message.text && <div className={`message ${message.type} show`}>{message.text}</div>}
+        {message.text && <div className={`message ${message.type} show`}><span className="msg-icon">{message.type === 'error' ? '⚠️' : '✅'}</span>{message.text}</div>}
 
         <div className="login-link">
           Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/doctor-login'); }}>Login here</a>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="trust-badges">
+          <div className="trust-item">
+            <span className="trust-icon">🔒</span>
+            <span>Secure</span>
+          </div>
+          <div className="trust-item">
+            <span className="trust-icon">⚡</span>
+            <span>Fast Setup</span>
+          </div>
+          <div className="trust-item">
+            <span className="trust-icon">✓</span>
+            <span>Verified</span>
+          </div>
         </div>
       </div>
     </div>

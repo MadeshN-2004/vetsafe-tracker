@@ -74,6 +74,7 @@ export default function DoctorDashboard() {
           <ul className="nav-menu">
             <li><a href="#" className="nav-link active"><i className="fas fa-chart-line"></i><span>Dashboard</span></a></li>
             <li><a href="#" className="nav-link"onClick={() =>navigate('/consultation-requests')}><i className="fas fa-inbox"></i><span>Consultation Requests</span></a></li>
+            <li><a href="#" className="nav-link" onClick={() => navigate('/doctor-chat')}><i className="fas fa-comments"></i><span>Chat with Farmers</span></a></li>
             <li><a href="#" className="nav-link" onClick={() =>navigate('/doctor-prescriptions')}><i className="fas fa-pills"></i><span>Prescription History</span></a></li>
             <li><a href="#" className="nav-link"><i className="fas fa-chart-bar"></i><span>Analytics</span></a></li>
             <li><a href="#" className="nav-link"><i className="fas fa-bell"></i><span>Notifications</span></a></li>

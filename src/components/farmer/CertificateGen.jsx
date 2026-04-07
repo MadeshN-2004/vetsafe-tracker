@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth, db, collection, query, where, getDocs, addDoc, serverTimestamp } from '../../config/firebase'
 import html2canvas from 'html2canvas'
+import './SharedStyles.css'
 import './CertificateGen.css'
 
 function CertificateGen() {
@@ -15,20 +16,27 @@ function CertificateGen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [certificate, setCertificate] = useState(null)
-  const [flippedCard, setFlippedCard] = useState(null)
+  const [selectedCert, setSelectedCert] = useState(null)
 
   const productRules = {
     'COW': ['Milk'],
     'CHICKEN': ['Eggs', 'Meat'],
-    'GOAT': ['Milk', 'Meat']
+    'NATTUKOZHI': ['Eggs', 'Meat'],
+    'GOAT': ['Milk', 'Meat'],
+    'BUFFALO': ['Milk'],
+    'PIG': ['Meat']
   }
 
   const yieldLimits = {
     'COW-Milk': 40,
     'CHICKEN-Eggs': 300,
     'CHICKEN-Meat': 3,
+    'NATTUKOZHI-Eggs': 200,
+    'NATTUKOZHI-Meat': 2,
     'GOAT-Milk': 5,
-    'GOAT-Meat': 30
+    'GOAT-Meat': 30,
+    'BUFFALO-Milk': 50,
+    'PIG-Meat': 100
   }
 
   useEffect(() => {
@@ -133,7 +141,6 @@ function CertificateGen() {
       const salesQ = query(collection(db, 'sales'), where('farmerId', '==', user.uid), where('animalId', '==', formData.animalId))
       const salesSnap = await getDocs(salesQ)
       
-      // Check if there's an unsold certificate for this animal
       for (let saleDoc of salesSnap.docs) {
         const saleData = saleDoc.data()
         const certId = saleData.certId || `VS-${new Date().getFullYear()}-${saleDoc.id.substring(0, 6).toUpperCase()}`
@@ -151,7 +158,7 @@ function CertificateGen() {
       const certId = `VS-${new Date().getFullYear()}-${Date.now().toString().substring(7, 13).toUpperCase()}`
       const batchId = `${formData.productType}${Date.now().toString().substring(11, 13).toUpperCase()}`
 
-      const saleRef = await addDoc(collection(db, 'sales'), {
+      await addDoc(collection(db, 'sales'), {
         certId,
         batchId,
         farmerId: user.uid,
@@ -178,6 +185,7 @@ function CertificateGen() {
       })
 
       loadStoredCerts(user.uid)
+      setFormData({ animalId: '', productType: '', quantity: '' })
       setLoading(false)
     } catch (err) {
       console.error('Error:', err)
@@ -187,158 +195,412 @@ function CertificateGen() {
   }
 
   const downloadCertificate = () => {
-    const cert = document.querySelector('.certificate')
+    const cert = document.querySelector('.certificate-preview')
     if (!cert) return
 
-    html2canvas(cert, { backgroundColor: '#1e293b', scale: 2 }).then(canvas => {
+    html2canvas(cert, { backgroundColor: '#0a0e1a', scale: 2 }).then(canvas => {
       const link = document.createElement('a')
-      link.download = `Certificate-${certificate.animalId}-${Date.now()}.png`
+      link.download = `Certificate-${certificate.certId}.png`
       link.href = canvas.toDataURL('image/png')
       link.click()
     })
   }
 
+  const getStats = () => {
+    const total = storedCerts.length
+    const sold = storedCerts.filter(c => c.isSold).length
+    const active = total - sold
+    const thisMonth = storedCerts.filter(c => {
+      if (!c.createdAt) return false
+      const certDate = c.createdAt.toDate()
+      const now = new Date()
+      return certDate.getMonth() === now.getMonth() && certDate.getFullYear() === now.getFullYear()
+    }).length
+
+    return { total, sold, active, thisMonth }
+  }
+
+  const stats = getStats()
+
   return (
-    <div className="cert-container">
-      <div className="page-header">
-        <h1 className="page-title">Generate Certificate</h1>
-        <button className="back-btn" onClick={() => navigate('/farmer-dashboard')}>
-          <i className="fas fa-arrow-left"></i>
-          Back to Dashboard
-        </button>
-      </div>
+    <div className="page-container">
+      <div className="page-glow"></div>
 
-      <div className="content-grid">
-        <div className="form-card">
-          <h2 className="card-title">
-            <i className="fas fa-certificate"></i>
-            Product Details
-          </h2>
-
-          {error && (
-            <div className="alert alert-danger">
-              <i className="fas fa-exclamation-circle"></i>
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label">Select Animal</label>
-              <select className="form-select" value={formData.animalId} onChange={(e) => handleAnimalChange(e.target.value)} required>
-                <option value="">Select Animal</option>
-                {animals.map(a => (
-                  <option key={a.id} value={a.animalId}>{a.speciesDisplay} - #{a.animalId}</option>
-                ))}
-              </select>
-            </div> 
-
-            <div className="form-group">
-              <label className="form-label">Product Type</label>
-              <select className="form-select" value={formData.productType} onChange={(e) => setFormData({...formData, productType: e.target.value})} required>
-                <option value="">Select Product</option>
-                {products.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Quantity</label>
-              <input type="number" className="form-input" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: e.target.value})} placeholder="Enter quantity" required min="0.1" step="0.1" />
-            </div>
-
-            <button type="submit" className="generate-btn" disabled={loading}>
-              <i className="fas fa-certificate"></i> {loading ? 'Generating...' : 'Generate Certificate'}
+      {/* Header */}
+      <header className="page-header">
+        <div className="header-content">
+          <div className="header-left">
+            <button className="back-btn" onClick={() => navigate('/farmer-dashboard')}>
+              <i className="fas fa-arrow-left"></i>
             </button>
-          </form>
+            <div className="page-title-section">
+              <h1><i className="fas fa-certificate"></i> Generate Certificate</h1>
+              <p className="page-subtitle">Create safe food certificates for your products / சான்றிதழ்</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="page-content">
+        
+        {/* Stats Cards */}
+        <div className="grid-4 mb-4">
+          <div className="stat-card">
+            <div className="stat-icon">
+              <i className="fas fa-certificate"></i>
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.total}</div>
+              <div className="stat-label">Total Certificates</div>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon success">
+              <i className="fas fa-check-circle"></i>
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.sold}</div>
+              <div className="stat-label">Sold</div>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon warning">
+              <i className="fas fa-clock"></i>
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.active}</div>
+              <div className="stat-label">Active</div>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon info">
+              <i className="fas fa-calendar-alt"></i>
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.thisMonth}</div>
+              <div className="stat-label">This Month</div>
+            </div>
+          </div>
         </div>
 
-        <div className="qr-card">
-          <h2 className="card-title">
-            <i className="fas fa-award"></i>
-            Certificate Preview
-          </h2>
-
-          {loading ? (
-            <div style={{textAlign: 'center', padding: '4rem 2rem'}}>
-              <div className="spinner"></div>
-              <p style={{color: 'var(--text-muted)'}}>Validating and generating certificate...</p>
+        {/* Form and Preview Grid */}
+        <div className="cert-grid">
+          
+          {/* Form Card */}
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">
+                <i className="fas fa-edit"></i>
+                Product Details
+              </h2>
             </div>
-          ) : certificate ? (
-            <div>
-              <div className="certificate">
-                <div className="cert-header">
-                  <div className="cert-main-title">SAFE FOOD CERTIFICATE</div>
-                  <div className="cert-id">Certificate ID: {certificate.certId}</div>
-                </div>
-                <div className="cert-row"><span className="cert-label">Farmer:</span><span className="cert-value">{certificate.farmerName}</span></div>
-                <div className="cert-row"><span className="cert-label">Animal:</span><span className="cert-value">{certificate.animalId}</span></div>
-                <div className="cert-row"><span className="cert-label">Product:</span><span className="cert-value">{certificate.productType}</span></div>
-                <div className="cert-row"><span className="cert-label">Quantity:</span><span className="cert-value">{certificate.quantity} {certificate.productType === 'Milk' ? 'L' : certificate.productType === 'Eggs' ? 'pcs' : 'kg'}</span></div>
-                <div className="cert-row"><span className="cert-label">Last Medicine:</span><span className="cert-value">{certificate.lastMedicine}</span></div>
-                <div className="cert-row"><span className="cert-label">Withdrawal Completed:</span><span className="cert-value">YES</span></div>
-                <div className="cert-row"><span className="cert-label">Verified By:</span><span className="cert-value">VetSafe Tracker System</span></div>
-                <div className="cert-row"><span className="cert-label">Timestamp:</span><span className="cert-value">{certificate.timestamp}</span></div>
-                <div className="cert-status">✓ SAFE FOR HUMAN CONSUMPTION</div>
+
+            {error && (
+              <div className="alert alert-error">
+                <i className="fas fa-exclamation-circle"></i>
+                <span>{error}</span>
               </div>
-              <button className="download-btn" onClick={downloadCertificate}>
-                <i className="fas fa-download"></i> Download Certificate
-              </button>
-            </div>
-          ) : (
-            <div style={{textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)'}}>
-              <i className="fas fa-certificate" style={{fontSize: '4rem', marginBottom: '1rem', opacity: 0.3}}></i>
-              <p>Fill the form to generate certificate</p>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
 
-      <div className="form-card" style={{marginTop: '2rem'}}>
-        <h2 className="card-title">
-          <i className="fas fa-history"></i>
-          Stored Certificates
-        </h2>
-        <div className="stored-certs">
-          {storedCerts.length === 0 ? (
-            <div style={{textAlign: 'center', padding: '2rem', color: 'var(--text-muted)'}}>
-              <i className="fas fa-inbox" style={{fontSize: '3rem', opacity: 0.3, marginBottom: '1rem'}}></i>
-              <p>No certificates generated yet</p>
+            <form onSubmit={handleSubmit} className="cert-form">
+              <div className="form-group">
+                <label className="form-label">
+                  <i className="fas fa-paw"></i>
+                  Select Animal / விலங்கு
+                </label>
+                <select 
+                  className="form-select" 
+                  value={formData.animalId} 
+                  onChange={(e) => handleAnimalChange(e.target.value)} 
+                  required
+                >
+                  <option value="">Choose animal...</option>
+                  {animals.map(a => (
+                    <option key={a.id} value={a.animalId}>
+                      {a.speciesDisplay} - #{a.animalId}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  <i className="fas fa-box"></i>
+                  Product Type / தயாரிப்பு
+                </label>
+                <select 
+                  className="form-select" 
+                  value={formData.productType} 
+                  onChange={(e) => setFormData({...formData, productType: e.target.value})} 
+                  required
+                  disabled={!formData.animalId}
+                >
+                  <option value="">Choose product...</option>
+                  {products.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  <i className="fas fa-weight"></i>
+                  Quantity / அளவு
+                </label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={formData.quantity} 
+                  onChange={(e) => setFormData({...formData, quantity: e.target.value})} 
+                  placeholder="Enter quantity" 
+                  required 
+                  min="0.1" 
+                  step="0.1"
+                />
+                {formData.productType && (
+                  <div className="form-hint">
+                    <i className="fas fa-info-circle"></i>
+                    Unit: {formData.productType === 'Milk' ? 'Liters (L)' : formData.productType === 'Eggs' ? 'Pieces (pcs)' : 'Kilograms (kg)'}
+                  </div>
+                )}
+              </div>
+
+              <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="spinner"></div>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-certificate"></i>
+                    <span>Generate Certificate</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Preview Card */}
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">
+                <i className="fas fa-award"></i>
+                Certificate Preview
+              </h2>
             </div>
-          ) : (
-            storedCerts.map(sale => {
-              const batchId = sale.batchId || 'N/A'
-              const certId = sale.certId || 'N/A'
-              return (
-                <div key={sale.id} className="flip-card" onClick={() => setFlippedCard(flippedCard === sale.id ? null : sale.id)}>
-                  <div className={`flip-card-inner ${flippedCard === sale.id ? 'flipped' : ''}`}>
-                    <div className="flip-card-front">
-                      <i className="fas fa-certificate" style={{fontSize: '3rem', marginBottom: '1rem', opacity: 0.9}}></i>
-                      <div className="batch-id">Batch: {batchId}</div>
-                      <div className="batch-subtitle">Click to view details</div>
-                      {sale.isSold && <div className="sold-badge">✓ SOLD</div>}
+
+            {loading ? (
+              <div className="cert-loading">
+                <div className="spinner-large"></div>
+                <p>Validating and generating certificate...</p>
+              </div>
+            ) : certificate ? (
+              <div className="cert-preview-wrapper">
+                <div className="certificate-preview">
+                  <div className="cert-badge">
+                    <i className="fas fa-shield-alt"></i>
+                  </div>
+                  <div className="cert-main-title">SAFE FOOD CERTIFICATE</div>
+                  <div className="cert-id-display">ID: {certificate.certId}</div>
+                  
+                  <div className="cert-details">
+                    <div className="cert-row">
+                      <span className="cert-label">Farmer</span>
+                      <span className="cert-value">{certificate.farmerName}</span>
                     </div>
-                    <div className="flip-card-back">
-                      <div className="cert-title">SAFE FOOD CERTIFICATE</div>
-                      <div className="cert-row"><span className="cert-label">Farmer:</span><span className="cert-value">{sale.farmerName}</span></div>
-                      <div className="cert-row"><span className="cert-label">Animal:</span><span className="cert-value">{sale.animalId}</span></div>
-                      <div className="cert-row"><span className="cert-label">Product:</span><span className="cert-value">{sale.productType}</span></div>
-                      <div className="cert-row" style={{background: 'rgba(167, 139, 250, 0.1)', fontWeight: 'bold'}}>
-                        <span className="cert-label">Certificate ID:</span>
-                        <span className="cert-value" style={{color: 'var(--accent)', fontSize: '0.95rem'}}>{certId}</span>
-                      </div>
-                      <div className="cert-row"><span className="cert-label">Quantity:</span><span className="cert-value">{sale.quantity} {sale.productType === 'Milk' ? 'L' : sale.productType === 'Eggs' ? 'pcs' : 'kg'}</span></div>
-                      <div className="cert-row"><span className="cert-label">Last Medicine:</span><span className="cert-value">{sale.lastMedicine}</span></div>
-                      <div className="cert-row"><span className="cert-label">Withdrawal:</span><span className="cert-value">YES</span></div>
-                      <div className="cert-row"><span className="cert-label">Date:</span><span className="cert-value">{sale.createdAt?.toDate().toLocaleDateString() || 'N/A'}</span></div>
-                      <div className="cert-status">✓ SAFE FOR CONSUMPTION</div>
+                    <div className="cert-row">
+                      <span className="cert-label">Animal ID</span>
+                      <span className="cert-value">#{certificate.animalId}</span>
+                    </div>
+                    <div className="cert-row">
+                      <span className="cert-label">Product</span>
+                      <span className="cert-value">{certificate.productType}</span>
+                    </div>
+                    <div className="cert-row">
+                      <span className="cert-label">Quantity</span>
+                      <span className="cert-value">
+                        {certificate.quantity} {certificate.productType === 'Milk' ? 'L' : certificate.productType === 'Eggs' ? 'pcs' : 'kg'}
+                      </span>
+                    </div>
+                    <div className="cert-row">
+                      <span className="cert-label">Last Medicine</span>
+                      <span className="cert-value">{certificate.lastMedicine}</span>
+                    </div>
+                    <div className="cert-row">
+                      <span className="cert-label">Withdrawal</span>
+                      <span className="cert-value">✓ Completed</span>
+                    </div>
+                    <div className="cert-row">
+                      <span className="cert-label">Date</span>
+                      <span className="cert-value">{certificate.timestamp}</span>
                     </div>
                   </div>
+
+                  <div className="cert-status-banner">
+                    <i className="fas fa-check-circle"></i>
+                    SAFE FOR HUMAN CONSUMPTION
+                  </div>
+
+                  <div className="cert-footer-text">
+                    Verified by VetSafe Tracker System
+                  </div>
                 </div>
-              )
-            })
-          )}
+
+                <button className="btn btn-success w-full" onClick={downloadCertificate}>
+                  <i className="fas fa-download"></i>
+                  Download Certificate
+                </button>
+              </div>
+            ) : (
+              <div className="cert-empty">
+                <div className="cert-empty-icon">
+                  <i className="fas fa-certificate"></i>
+                </div>
+                <h3>No Certificate Generated</h3>
+                <p>Fill the form to generate a certificate</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* Stored Certificates */}
+        <div className="card mt-4">
+          <div className="card-header">
+            <h2 className="card-title">
+              <i className="fas fa-history"></i>
+              Certificate History
+            </h2>
+          </div>
+
+          <div className="cert-history-grid">
+            {storedCerts.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">
+                  <i className="fas fa-inbox"></i>
+                </div>
+                <h3>No Certificates Yet</h3>
+                <p>Generate your first certificate to see it here</p>
+              </div>
+            ) : (
+              storedCerts.map((cert, index) => (
+                <div 
+                  key={cert.id} 
+                  className="cert-history-card"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                  onClick={() => setSelectedCert(cert)}
+                >
+                  <div className="cert-history-header">
+                    <div className="cert-history-icon">
+                      <i className="fas fa-certificate"></i>
+                    </div>
+                    {cert.isSold && (
+                      <div className="cert-sold-badge">
+                        <i className="fas fa-check"></i>
+                        Sold
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="cert-history-body">
+                    <div className="cert-history-id">{cert.certId}</div>
+                    <div className="cert-history-product">{cert.productType}</div>
+                    <div className="cert-history-details">
+                      <span><i className="fas fa-paw"></i> {cert.animalId}</span>
+                      <span><i className="fas fa-weight"></i> {cert.quantity} {cert.productType === 'Milk' ? 'L' : cert.productType === 'Eggs' ? 'pcs' : 'kg'}</span>
+                    </div>
+                    <div className="cert-history-date">
+                      {cert.createdAt?.toDate().toLocaleDateString() || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div className="cert-history-footer">
+                    <span>View Details</span>
+                    <i className="fas fa-arrow-right"></i>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* Certificate Detail Modal */}
+      {selectedCert && (
+        <div className="modal" onClick={() => setSelectedCert(null)}>
+          <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                <i className="fas fa-certificate"></i>
+                Certificate Details
+              </h3>
+              <button className="modal-close" onClick={() => setSelectedCert(null)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="certificate-preview">
+                <div className="cert-badge">
+                  <i className="fas fa-shield-alt"></i>
+                </div>
+                <div className="cert-main-title">SAFE FOOD CERTIFICATE</div>
+                <div className="cert-id-display">ID: {selectedCert.certId}</div>
+                
+                <div className="cert-details">
+                  <div className="cert-row">
+                    <span className="cert-label">Farmer</span>
+                    <span className="cert-value">{selectedCert.farmerName}</span>
+                  </div>
+                  <div className="cert-row">
+                    <span className="cert-label">Animal ID</span>
+                    <span className="cert-value">#{selectedCert.animalId}</span>
+                  </div>
+                  <div className="cert-row">
+                    <span className="cert-label">Product</span>
+                    <span className="cert-value">{selectedCert.productType}</span>
+                  </div>
+                  <div className="cert-row">
+                    <span className="cert-label">Quantity</span>
+                    <span className="cert-value">
+                      {selectedCert.quantity} {selectedCert.productType === 'Milk' ? 'L' : selectedCert.productType === 'Eggs' ? 'pcs' : 'kg'}
+                    </span>
+                  </div>
+                  <div className="cert-row">
+                    <span className="cert-label">Last Medicine</span>
+                    <span className="cert-value">{selectedCert.lastMedicine}</span>
+                  </div>
+                  <div className="cert-row">
+                    <span className="cert-label">Status</span>
+                    <span className="cert-value">{selectedCert.isSold ? '✓ Sold' : '⏳ Active'}</span>
+                  </div>
+                  <div className="cert-row">
+                    <span className="cert-label">Date</span>
+                    <span className="cert-value">{selectedCert.createdAt?.toDate().toLocaleDateString() || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div className="cert-status-banner">
+                  <i className="fas fa-check-circle"></i>
+                  SAFE FOR HUMAN CONSUMPTION
+                </div>
+
+                <div className="cert-footer-text">
+                  Verified by VetSafe Tracker System
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setSelectedCert(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

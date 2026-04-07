@@ -22,6 +22,10 @@ import BuyerRegister from './components/buyer/BuyerRegister'
 import BuyerDashboard from './components/buyer/BuyerDashboard'
 import BuyerVerify from './components/buyer/BuyerVerify'
 import VetChatbot from './components/chatbot/VetChatbot'
+import Chat from './components/chat/Chat'
+import FarmerChat from './components/chat/FarmerChat'
+import DoctorChat from './components/chat/DoctorChat'
+import ChatWithDoctor from './components/farmer/ChatWithDoctor'
 
 function App() {
   return (
@@ -49,6 +53,9 @@ function App() {
         <Route path="/buyer-register" element={<BuyerRegister />} />
         <Route path="/buyer-dashboard" element={<BuyerDashboard />} />
         <Route path="/buyer-verify" element={<BuyerVerify />} />
+        <Route path="/farmer-chat" element={<ChatWithDoctor />} />
+        <Route path="/doctor-chat" element={<DoctorChat />} />
+        <Route path="/chat/:roomId" element={<Chat />} />
       </Routes>
       <VetChatbot />
     </Router>
